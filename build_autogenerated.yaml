@@ -852,6 +852,7 @@ libs:
   - src/core/lib/event_engine/extensions/can_track_errors.h
   - src/core/lib/event_engine/extensions/chaotic_good_extension.h
   - src/core/lib/event_engine/extensions/supports_fd.h
+  - src/core/lib/event_engine/extensions/tcp_trace.h
   - src/core/lib/event_engine/forkable.h
   - src/core/lib/event_engine/grpc_polled_fd.h
   - src/core/lib/event_engine/handle_containers.h
@@ -1695,6 +1696,7 @@ libs:
   - src/core/lib/event_engine/default_event_engine.cc
   - src/core/lib/event_engine/default_event_engine_factory.cc
   - src/core/lib/event_engine/event_engine.cc
+  - src/core/lib/event_engine/extensions/tcp_trace.cc
   - src/core/lib/event_engine/forkable.cc
   - src/core/lib/event_engine/posix_engine/ev_epoll1_linux.cc
   - src/core/lib/event_engine/posix_engine/ev_poll_posix.cc
@@ -2356,6 +2358,7 @@ libs:
   - src/core/lib/event_engine/extensions/can_track_errors.h
   - src/core/lib/event_engine/extensions/chaotic_good_extension.h
   - src/core/lib/event_engine/extensions/supports_fd.h
+  - src/core/lib/event_engine/extensions/tcp_trace.h
   - src/core/lib/event_engine/forkable.h
   - src/core/lib/event_engine/grpc_polled_fd.h
   - src/core/lib/event_engine/handle_containers.h
@@ -2820,6 +2823,7 @@ libs:
   - src/core/lib/event_engine/default_event_engine.cc
   - src/core/lib/event_engine/default_event_engine_factory.cc
   - src/core/lib/event_engine/event_engine.cc
+  - src/core/lib/event_engine/extensions/tcp_trace.cc
   - src/core/lib/event_engine/forkable.cc
   - src/core/lib/event_engine/posix_engine/ev_epoll1_linux.cc
   - src/core/lib/event_engine/posix_engine/ev_poll_posix.cc
@@ -4445,6 +4449,7 @@ libs:
   - src/core/lib/event_engine/extensions/can_track_errors.h
   - src/core/lib/event_engine/extensions/chaotic_good_extension.h
   - src/core/lib/event_engine/extensions/supports_fd.h
+  - src/core/lib/event_engine/extensions/tcp_trace.h
   - src/core/lib/event_engine/forkable.h
   - src/core/lib/event_engine/grpc_polled_fd.h
   - src/core/lib/event_engine/handle_containers.h
@@ -4783,6 +4788,7 @@ libs:
   - src/core/lib/event_engine/default_event_engine.cc
   - src/core/lib/event_engine/default_event_engine_factory.cc
   - src/core/lib/event_engine/event_engine.cc
+  - src/core/lib/event_engine/extensions/tcp_trace.cc
   - src/core/lib/event_engine/forkable.cc
   - src/core/lib/event_engine/posix_engine/ev_epoll1_linux.cc
   - src/core/lib/event_engine/posix_engine/ev_poll_posix.cc
