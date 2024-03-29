@@ -76,6 +76,7 @@
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/context.h"
 #include "src/core/lib/channel/tcp_tracer.h"
+#include "src/core/lib/config/config_vars.h"
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/debug/stats_data.h"
 #include "src/core/lib/experiments/experiments.h"
@@ -385,7 +386,7 @@ grpc_chttp2_transport::~grpc_chttp2_transport() {
     channelz_socket.reset();
   }
 
-  grpc_endpoint_destroy(ep);
+  if (ep != nullptr) grpc_endpoint_destroy(ep);
 
   grpc_slice_buffer_destroy(&qbuf);
 
@@ -759,9 +760,21 @@ static void close_transport_locked(grpc_chttp2_transport* t,
       GRPC_CHTTP2_STREAM_UNREF(s, "chttp2_writing:close");
     }
     GPR_ASSERT(t->write_state == GRPC_CHTTP2_WRITE_STATE_IDLE);
-    grpc_endpoint_shutdown(t->ep, error);
+    if (t->interested_parties_until_recv_settings != nullptr) {
+      grpc_endpoint_delete_from_pollset_set(
+          t->ep, t->interested_parties_until_recv_settings);
+      t->interested_parties_until_recv_settings = nullptr;
+    }
+    grpc_core::MutexLock lock(&t->ep_destroy_mu);
+    grpc_endpoint_destroy(t->ep);
+    t->ep = nullptr;
   }
   if (t->notify_on_receive_settings != nullptr) {
+    if (t->interested_parties_until_recv_settings != nullptr) {
+      grpc_endpoint_delete_from_pollset_set(
+          t->ep, t->interested_parties_until_recv_settings);
+      t->interested_parties_until_recv_settings = nullptr;
+    }
     grpc_core::ExecCtx::Run(DEBUG_LOCATION, t->notify_on_receive_settings,
                             error);
     t->notify_on_receive_settings = nullptr;
@@ -3010,12 +3023,16 @@ static void connectivity_state_set(grpc_chttp2_transport* t,
 
 void grpc_chttp2_transport::SetPollset(grpc_stream* /*gs*/,
                                        grpc_pollset* pollset) {
-  grpc_endpoint_add_to_pollset(ep, pollset);
+  if (grpc_core::ConfigVars::Get().PollStrategy() != "poll") return;
+  grpc_core::MutexLock lock(&ep_destroy_mu);
+  if (ep != nullptr) grpc_endpoint_add_to_pollset(ep, pollset);
 }
 
 void grpc_chttp2_transport::SetPollsetSet(grpc_stream* /*gs*/,
                                           grpc_pollset_set* pollset_set) {
-  grpc_endpoint_add_to_pollset_set(ep, pollset_set);
+  if (grpc_core::ConfigVars::Get().PollStrategy() != "poll") return;
+  grpc_core::MutexLock lock(&ep_destroy_mu);
+  if (ep != nullptr) grpc_endpoint_add_to_pollset_set(ep, pollset_set);
 }
 
 //
@@ -3203,7 +3220,9 @@ grpc_core::Transport* grpc_create_chttp2_transport(
 
 void grpc_chttp2_transport_start_reading(
     grpc_core::Transport* transport, grpc_slice_buffer* read_buffer,
-    grpc_closure* notify_on_receive_settings, grpc_closure* notify_on_close) {
+    grpc_closure* notify_on_receive_settings,
+    grpc_pollset_set* interested_parties_until_recv_settings,
+    grpc_closure* notify_on_close) {
   auto t = reinterpret_cast<grpc_chttp2_transport*>(transport)->Ref();
   if (read_buffer != nullptr) {
     grpc_slice_buffer_move_into(read_buffer, &t->read_buffer);
@@ -3212,9 +3231,15 @@ void grpc_chttp2_transport_start_reading(
   auto* tp = t.get();
   tp->combiner->Run(
       grpc_core::NewClosure([t = std::move(t), notify_on_receive_settings,
+                             interested_parties_until_recv_settings,
                              notify_on_close](grpc_error_handle) mutable {
         if (!t->closed_with_error.ok()) {
           if (notify_on_receive_settings != nullptr) {
+            if (t->ep != nullptr &&
+                interested_parties_until_recv_settings != nullptr) {
+              grpc_endpoint_delete_from_pollset_set(
+                  t->ep, interested_parties_until_recv_settings);
+            }
             grpc_core::ExecCtx::Run(DEBUG_LOCATION, notify_on_receive_settings,
                                     t->closed_with_error);
           }
@@ -3224,6 +3249,8 @@ void grpc_chttp2_transport_start_reading(
           }
           return;
         }
+        t->interested_parties_until_recv_settings =
+            interested_parties_until_recv_settings;
         t->notify_on_receive_settings = notify_on_receive_settings;
         t->notify_on_close = notify_on_close;
         read_action_locked(std::move(t), absl::OkStatus());
