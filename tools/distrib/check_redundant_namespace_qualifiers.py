@@ -21,6 +21,13 @@ import os
 import re
 import sys
 
+IGNORED_FILES = [
+    # note: the grpc_core::Server redundant namespace qualification is required
+    # for older gcc versions.
+    "src/core/ext/transport/chttp2/server/chttp2_server.h",
+    "src/core/lib/surface/server.h",
+]
+
 
 def find_closing_mustache(contents, initial_depth):
     """Find the closing mustache for a given number of open mustaches."""
@@ -161,21 +168,23 @@ _CONFIGURATION = (Config(["src/core", "test/core"], ["grpc_core"]),)
 changed = []
 
 for config in _CONFIGURATION:
-    for dir in config.dirs:
-        for root, dirs, files in os.walk(dir):
-            for file in files:
-                if file.endswith(".cc") or file.endswith(".h"):
-                    path = os.path.join(root, file)
-                    try:
-                        with open(path) as f:
-                            contents = f.read()
-                    except IOError:
-                        continue
-                    updated = update_file(contents, config.namespaces)
-                    if updated != contents:
-                        changed.append(path)
-                        with open(os.path.join(root, file), "w") as f:
-                            f.write(updated)
+  for dir in config.dirs:
+    for root, dirs, files in os.walk(dir):
+      for file in files:
+        if file.endswith(".cc") or file.endswith(".h"):
+          path = os.path.join(root, file)
+          if path in IGNORED_FILES:
+            continue
+          try:
+            with open(path) as f:
+              contents = f.read()
+          except IOError:
+            continue
+          updated = update_file(contents, config.namespaces)
+          if updated != contents:
+            changed.append(path)
+            with open(os.path.join(root, file), "w") as f:
+              f.write(updated)
 
 if changed:
     print("The following files were changed:")

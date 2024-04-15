@@ -1,7 +1,7 @@
+import Foundation
 // swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 import PackageDescription
-import Foundation
 
 var basePath = FileManager.default.fileExists(atPath: "native") ? "native" : "."
 
@@ -11,19 +11,20 @@ let package = Package(
     .library(
       name: "gRPC-Core",
       targets: [
-        "gRPC-Core",
+        "gRPC-Core"
       ]
     ),
     .library(
       name: "gRPC-cpp",
       targets: [
-        "gRPC-cpp",
+        "gRPC-cpp"
       ]
-    )
+    ),
   ],
 
   dependencies: [
-    .package(url: "https://github.com/firebase/abseil-cpp-SwiftPM.git", "0.20230802.0"..<"0.20230803.0"),
+    .package(
+      url: "https://github.com/firebase/abseil-cpp-SwiftPM.git", "0.20230802.0"..<"0.20230803.0"),
     .package(url: "https://github.com/firebase/boringssl-SwiftPM.git", "0.9.0"..<"0.10.0"),
   ],
 
@@ -31,15 +32,15 @@ let package = Package(
     .target(
       name: "gRPC-Core",
       dependencies: [
-        .product(name:"abseil", package: "abseil-cpp-SwiftPM"),
-        .product(name:"openssl_grpc", package: "boringssl-SwiftPM"),
+        .product(name: "abseil", package: "abseil-cpp-SwiftPM"),
+        .product(name: "openssl_grpc", package: "boringssl-SwiftPM"),
       ],
       path: basePath,
       exclude: [
         "examples/",
         "src/objective-c/",
       ],
-    
+
       sources: [
         "include/grpc/byte_buffer.h",
         "include/grpc/byte_buffer_reader.h",
@@ -92,6 +93,7 @@ let package = Package(
         "include/grpc/impl/propagation_bits.h",
         "include/grpc/impl/slice_type.h",
         "include/grpc/load_reporting.h",
+        "include/grpc/passive_listener.h",
         "include/grpc/slice.h",
         "include/grpc/slice_buffer.h",
         "include/grpc/status.h",
@@ -2218,7 +2220,7 @@ let package = Package(
         "third_party/xxhash/xxhash.h",
       ],
       resources: [
-        .copy("src/objective-c/PrivacyInfo.xcprivacy"),
+        .copy("src/objective-c/PrivacyInfo.xcprivacy")
       ],
       publicHeadersPath: "spm-core-include",
       cSettings: [
@@ -2240,7 +2242,7 @@ let package = Package(
     .target(
       name: "gRPC-cpp",
       dependencies: [
-        .product(name:"abseil", package: "abseil-cpp-SwiftPM"),
+        .product(name: "abseil", package: "abseil-cpp-SwiftPM"),
         "gRPC-Core",
       ],
       path: basePath,
@@ -2264,10 +2266,10 @@ let package = Package(
         "src/objective-c/tests/",
       ],
       sources: [
-        "src/cpp/",
+        "src/cpp/"
       ],
       resources: [
-        .copy("src/objective-c/PrivacyInfo.xcprivacy"),
+        .copy("src/objective-c/PrivacyInfo.xcprivacy")
       ],
       publicHeadersPath: "spm-cpp-include",
       cSettings: [
@@ -2280,7 +2282,7 @@ let package = Package(
     .testTarget(
       name: "build-test",
       dependencies: [
-        "gRPC-cpp",
+        "gRPC-cpp"
       ],
       path: basePath + "/test/spm_build"
     ),

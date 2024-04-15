@@ -17,6 +17,11 @@
 #ifndef GRPC_SRC_CORE_LIB_SURFACE_SERVER_H
 #define GRPC_SRC_CORE_LIB_SURFACE_SERVER_H
 
+#include <grpc/grpc.h>
+#include <grpc/passive_listener.h>
+#include <grpc/slice.h>
+#include <grpc/support/port_platform.h>
+#include <grpc/support/time.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -28,20 +33,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/hash/hash.h"
-#include "absl/random/random.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
-
-#include <grpc/grpc.h>
-#include <grpc/slice.h>
-#include <grpc/support/port_platform.h>
-#include <grpc/support/time.h>
 
 #include "src/core/lib/backoff/random_early_detection.h"
 #include "src/core/lib/channel/call_tracer.h"
@@ -68,12 +59,23 @@
 #include "src/core/lib/surface/server_interface.h"
 #include "src/core/lib/transport/metadata_batch.h"
 #include "src/core/lib/transport/transport.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/hash/hash.h"
+#include "absl/random/random.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 
 #define GRPC_ARG_SERVER_MAX_PENDING_REQUESTS "grpc.server.max_pending_requests"
 #define GRPC_ARG_SERVER_MAX_PENDING_REQUESTS_HARD_LIMIT \
   "grpc.server.max_pending_requests_hard_limit"
 
 namespace grpc_core {
+namespace experimental {
+class PassiveListenerImpl;
+}  // namespace experimental
 
 extern TraceFlag grpc_server_channel_trace;
 
@@ -112,7 +114,7 @@ class Server : public ServerInterface,
   /// Interface for listeners.
   /// Implementations must override the Orphan() method, which should stop
   /// listening and initiate destruction of the listener.
-  class ListenerInterface : public Orphanable {
+  class ListenerInterface : public InternallyRefCounted<ListenerInterface> {
    public:
     ~ListenerInterface() override = default;
 
@@ -212,6 +214,14 @@ class Server : public ServerInterface,
   void SendGoaways() ABSL_LOCKS_EXCLUDED(mu_global_, mu_call_);
 
  private:
+  // note: the grpc_core::Server redundant namespace qualification is
+  // required for older gcc versions.
+  // TODO(yashykt): eliminate this friend statement as part of your upcoming
+  // server listener refactoring.
+  friend absl::Status(::grpc_server_add_passive_listener)(
+      grpc_core::Server* server, grpc_server_credentials* credentials,
+      std::shared_ptr<grpc_core::experimental::PassiveListenerImpl>
+          passive_listener);
   struct RequestedCall;
 
   class RequestMatcherInterface;
